@@ -31,8 +31,7 @@ public class SecurityConfig {
   if (mode.equals("oidc")) {
    if (issuer.isBlank() || !issuer.startsWith("https://")) throw new IllegalStateException("HTTPS OIDC issuer required");
    NimbusJwtDecoder decoder=JwtDecoders.fromIssuerLocation(issuer);
-   decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(JwtValidators.createDefaultWithIssuer(issuer), jwt ->
-     jwt.getAudience().contains(audience) ? OAuth2TokenValidatorResult.success() : OAuth2TokenValidatorResult.failure(new OAuth2Error("invalid_token"))));
+   decoder.setJwtValidator(validators(issuer,audience));
    http.oauth2ResourceServer(o->o.jwt(j->j.decoder(decoder)));
   } else if (mode.equals("local")) {
    if(user.length()<32 || approver.length()<32 || user.equals(approver)) throw new IllegalStateException("Distinct local tokens of at least 32 characters required");
@@ -53,12 +52,15 @@ public class SecurityConfig {
   } else throw new IllegalStateException("Unsupported authentication mode");
   return http.build();
  }
+ static OAuth2TokenValidator<Jwt> validators(String issuer,String audience) {
+  return new DelegatingOAuth2TokenValidator<>(JwtValidators.createDefaultWithIssuer(issuer),jwt->jwt.getAudience().contains(audience)?OAuth2TokenValidatorResult.success():OAuth2TokenValidatorResult.failure(new OAuth2Error("invalid_token")));
+ }
  static boolean equal(String a,String b) { return MessageDigest.isEqual(a.getBytes(StandardCharsets.UTF_8),b.getBytes(StandardCharsets.UTF_8)); }
  public static Identity identity(org.springframework.security.core.Authentication auth) {
   if(auth.getPrincipal() instanceof Identity i) return i;
   if(auth.getPrincipal() instanceof Jwt jwt) {
    String tenant=jwt.getClaimAsString("tenant_id");
-   if(tenant==null || !tenant.matches("[a-zA-Z0-9_-]{1,100}") || jwt.getSubject()==null || jwt.getSubject().length()>200) throw new ApiError(403,"Invalid identity claims");
+   if(tenant==null || !tenant.matches("[a-zA-Z0-9_-]{1,100}") || jwt.getSubject()==null || jwt.getSubject().isBlank() || jwt.getSubject().length()>200) throw new ApiError(403,"Invalid identity claims");
    String scope=jwt.getClaimAsString("scope");
    return new Identity(tenant,jwt.getSubject(),scope==null?Set.of():Set.copyOf(Arrays.asList(scope.split(" "))));
   }

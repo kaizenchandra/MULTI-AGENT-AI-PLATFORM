@@ -9,14 +9,18 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 @Service
 public class ToolGateway {
- private final JdbcTemplate db;private final AgentRegistry agents;private final Audit audit;private final Json json;
- public ToolGateway(JdbcTemplate db,AgentRegistry agents,Audit audit,Json json){this.db=db;this.agents=agents;this.audit=audit;this.json=json;}
+ private final TraceSupport tracing;private final JdbcTemplate db;private final AgentRegistry agents;private final Audit audit;private final Json json;
+ public ToolGateway(JdbcTemplate db,AgentRegistry agents,Audit audit,Json json,TraceSupport tracing){this.tracing=tracing;this.db=db;this.agents=agents;this.audit=audit;this.json=json;}
  public static String hash(String value){try{return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8)));}catch(Exception e){throw new IllegalStateException(e);}}
  public List<Map<String,Object>> catalog(){return List.of(Map.of("id","knowledge.search","effect","READ","allowedAgents",List.of("research","verification"),"inputSchema","Query.v1","approvalRequired",false),Map.of("id","case.create","effect","WRITE_LOCAL","allowedAgents",List.of("execution"),"inputSchema","Action.v1","approvalRequired",true));}
  // Must participate in the locked workflow transaction. Local integration and invocation ledger commit atomically.
  @Transactional(propagation=Propagation.MANDATORY)
  public Map<String,Object> createCase(Identity who,UUID workflow,Action action) {
+  try(var span=tracing.child("tool.case.create")){return createCaseWithinTransaction(who,workflow,action);}
+ }
+ private Map<String,Object> createCaseWithinTransaction(Identity who,UUID workflow,Action action) {
   who.require("workflow:write");agents.authorizeTool("execution","case.create");
+  if(db.queryForList("SELECT id FROM workflows WHERE id=? AND tenant=? AND owner_id=? FOR UPDATE",workflow,who.tenant(),who.subject()).isEmpty())throw new ApiError(404,"Workflow not found");
   String serialized=json.write(action),hash=hash(serialized);
   var existing=db.queryForList("SELECT action_hash,result_json FROM tool_invocations WHERE tenant=? AND workflow_id=? AND tool='case.create'",who.tenant(),workflow);
   if(!existing.isEmpty()) {

@@ -1,0 +1,15 @@
+groups:
+  - name: agent-platform
+    rules:
+      - alert: AgentWorkflowFailures
+        expr: sum(increase(platform_workflow_failures_total[10m])) > 5
+        for: 5m
+        labels: {severity: warning}
+        annotations:
+          summary: Elevated workflow failures; inspect failure classifications and audit events
+      - alert: AgentWorkerDatabaseUnavailable
+        expr: sum(increase(platform_worker_infrastructure_failures_total[5m])) > 3
+        for: 2m
+        labels: {severity: critical}
+        annotations:
+          summary: Worker cannot poll or commit durable workflow state

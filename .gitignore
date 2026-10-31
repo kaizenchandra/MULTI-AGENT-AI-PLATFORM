@@ -1,0 +1,14 @@
+.env
+.env.*
+!.env.example
+**/target/
+**/node_modules/
+**/dist/
+**/*.tsbuildinfo
+**/test-results/
+**/playwright-report/
+*.log
+.DS_Store
+.terraform/
+*.tfstate*
+*.tfplan

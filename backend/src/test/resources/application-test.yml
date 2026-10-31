@@ -1,0 +1,21 @@
+spring:
+  datasource:
+    password: test
+platform:
+  auth:
+    mode: local
+    local-user-token: user-test-token-000000000000000000000000000
+    local-approver-token: approver-test-token-00000000000000000000000
+  worker:
+    enabled: false
+  model:
+    mode: extractive
+    api-key: ''
+    name: ''
+    input-usd-per-million: 0
+    output-usd-per-million: 0
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus

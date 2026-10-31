@@ -24,12 +24,27 @@ server:
     threads:
       max: 64
 management:
+  metrics:
+    distribution:
+      percentiles-histogram:
+        platform.agent.duration: true
+  tracing:
+    sampling:
+      probability: ${TRACE_SAMPLE_PROBABILITY:0.1}
+  otlp:
+    tracing:
+      endpoint: ${OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:http://localhost:4318/v1/traces}
+      export:
+        enabled: ${TRACING_EXPORT_ENABLED:false}
   endpoints:
     web:
       exposure:
         include: health,info,prometheus
   endpoint:
     health:
+      group:
+        readiness:
+          include: readinessState,db
       probes:
         enabled: true
 platform:
