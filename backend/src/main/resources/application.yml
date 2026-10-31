@@ -1,0 +1,50 @@
+spring:
+  application:
+    name: enterprise-agents
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/agents}
+    username: ${DATABASE_USER:agents}
+    password: ${DATABASE_PASSWORD}
+    hikari:
+      maximum-pool-size: 12
+      connection-timeout: 5000
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true
+  servlet:
+    multipart:
+      max-file-size: 1MB
+      max-request-size: 1MB
+server:
+  shutdown: graceful
+  error:
+    include-message: never
+  tomcat:
+    max-http-form-post-size: 1MB
+    threads:
+      max: 64
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+platform:
+  auth:
+    mode: ${AUTH_MODE:oidc}
+    issuer: ${OIDC_ISSUER:}
+    audience: ${OIDC_AUDIENCE:agents-api}
+    local-user-token: ${LOCAL_USER_TOKEN:}
+    local-approver-token: ${LOCAL_APPROVER_TOKEN:}
+  worker:
+    enabled: true
+    delay-ms: 500
+  model:
+    mode: ${MODEL_MODE:extractive}
+    api-key: ${OPENAI_API_KEY:}
+    name: ${OPENAI_MODEL:}
+    input-usd-per-million: ${MODEL_INPUT_PRICE:0}
+    output-usd-per-million: ${MODEL_OUTPUT_PRICE:0}
